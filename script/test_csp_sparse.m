@@ -2,7 +2,7 @@ clear;
 dbstop if error;
 
 %% Load Image:
-img = imread('nov21/horline.png');
+img = imread('~/Dropbox/lasso/nov21/horline.png');
 
 [L, C, D, N] = init_4way_sparse(img);
 
@@ -29,7 +29,7 @@ y(1:3:end) = -1; y(3:3:end) =0.5;
 
 %% these are independent of y
 Q = L+mu*D; % Q = sparse(Q); 
-Q_inv = eye(size(Q))/Q;
+Q_inv = 0.5*(eye(size(Q))/Q+ Q\eye(size(Q)));
 l = zeros([1, 14*N]); l(end-N:end)=1;
 Aeq = []; beq = zeros(4*2*N,1);
 for i=1:4*N
