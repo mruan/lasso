@@ -14,9 +14,6 @@ end
 
 xi = 10.0;  % noramally called lambda
 mu = 1.0;
-lb = zeros([14*N,1]); ub = lb;
-lb(1:12*N) = -xi; lb(13*N+1:end) = [];
-ub(1:12*N) =  xi; ub(12*N+1:end) = [];
 
 %% The problem is:
 %% min (0.5*z'(A'/Q*A)z+(b'/Q*A+l)z  
@@ -51,7 +48,11 @@ A = sparse(A);
 H = A'*Q_inv*A;
 f = b'*Q_inv*A+l;
 
+lb = zeros([14*N,1]); ub = lb;
+lb(1:12*N) = -xi; lb(13*N+1:end) = [];
+ub(1:12*N) =  xi; ub(12*N+1:end) = [];
+
 % x = quadprog(H,f,A,b,Aeq,beq,lb,ub)
 opts = optimoptions('quadprog','Algorithm','active-set','Display','off');
-[z_op, fval] = quadprog(H, f, [], [], Aeq, beq, lb, ub, [], opts);
+[z_op, fval] = quadprog(H, f, [], [], Aeq, beq, lb, ub, zeros([14*N, 1]), opts);
 x_op = -Q_inv*(A*z_op+b);

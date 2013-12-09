@@ -37,7 +37,7 @@ for i=1:N
   
   if(v>1 && bw_img(u,v-1))
     t = sub2idx(u, v-1); r = (t-1)*3+1:t*3;
-    C(k, k, 2) = 1;
+    C(k, k, 2) = diag([1,1,1]);
     C(k, r, 2) = diag([-1,-1,-1]);
   end
   
