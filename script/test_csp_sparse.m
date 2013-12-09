@@ -15,7 +15,7 @@ for i=1:N
 end
 
 %% Optimization specific parameters.
-xi = 1e-0;  % noramally called lambda
+xi = 1e-05;  % noramally called lambda
 mu = 1.0;
 
 %% The problem is:
@@ -75,9 +75,10 @@ r = sqrt(y(1:3:end).^2+y(2:3:end).^2);
 r = repmat(r', [3, 1]);
 y = y./r(:);
 
-fv= 0.5*y'*L*y + xi*(norm(C(:,:,1)*y, 1)+norm(C(:,:,2)*y, 1)...
+fv= 0.5*y'*L*y;
+hv= xi*(norm(C(:,:,1)*y, 1)+norm(C(:,:,2)*y, 1)...
                     +norm(C(:,:,3)*y, 1)+norm(C(:,:,4)*y, 1));
-fprintf('It %2d, fval=%f f=%f\n', it, fval, fv);
+fprintf('It %2d, fval=%f f=%f h=%f F=%f\n', it, fval, fv, hv, fv+hv);
 
 end
 plot3(y(1:3:end), y(1:3:end), y(3:3:end), '.r');
