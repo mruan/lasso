@@ -1,17 +1,20 @@
-clear;
+%clear;
 dbstop if error;
 
 %% Load Image:
 img = imread('~/Dropbox/lasso/nov21/horline.png');
 
-[L, C, D, N] = init_4way_sparse(img);
+%% Create the problem specific matrices
+[L, C, c, D, N] = init_4way_sparse(img);
 
-%d  = zeros([3*N, 1]); d(3:3:end) = -1; % d'*x <= 0 <=> c_i >= 0 
+%% d'*x <=0 <=> c_i >= 0
+%d  = zeros([3*N, 1]); d(3:3:end) = -1;
 d  = zeros([N, 3*N]);
 for i=1:N
    d(i, 3*i) = -1; 
 end
 
+%% Optimization specific parameters.
 xi = 10.0;  % noramally called lambda
 mu = 1.0;
 
@@ -20,39 +23,61 @@ mu = 1.0;
 %% where z = [u_{1-4} v w];
 %% x_op = -Q\(Az+b)
 
-%%  y
-y = zeros([3*N, 1]);
-y(1:3:end) = -1; y(3:3:end) =0.5;
-
 %% these are independent of y
 Q = L+mu*D; % Q = sparse(Q); 
-Q_inv = 0.5*(eye(size(Q))/Q+ Q\eye(size(Q)));
-l = zeros([1, 14*N]); l(end-N:end)=1;
-Aeq = []; beq = zeros(4*2*N,1);
-for i=1:4*N
-   Aeq = blkdiag(Aeq, [1 -1 0; 0 1 -1]); 
-end
-Aeq = [Aeq zeros(2*4*N, 2*N)];
+Q_inv = 0.5*(eye(size(Q))/Q+ Q\eye(size(Q))); % To guarantee symmetry.
 
+%% l:
+l = zeros([1, 6*N]); l(end-N:end)=1;
+lb = zeros([6*N,1]); ub = lb;
+
+%% upper and lower bounds
+lb(1:4*N) = -xi; lb(5*N+1:end) = -Inf; % -xi <= u and 0<=v
+ub(1:4*N) =  xi; ub(4*N+1:end) = +Inf; %   u <= xi 
+
+%% The initial guess: y
+y = zeros([3*N, 1]);
+%y(1:3:end) = -1; y(3:3:end) =0.5;
+y(1:3:end) = rand(N,1);
+y(2:3:end) = sqrt(1-y(1:3:end).^2);
+y(3:3:end) = rand(N, 1);
+
+for it = 1:10
 %% Make Y matrix
 Y = zeros([3*N, N]);
 for i=1:N
    Y(3*(i-1)+1: 3*(i-1)+2, i) = y(3*(i-1)+1: 3*(i-1)+2);
 end
+
+%% Only A and b depend on y
+A = [c(:,:,1)', c(:,:,2)', c(:,:,3)', c(:,:,4)', d', Y];
+A = sparse(A);
 b = -mu*D*y;
 
-A = [C(:,:,1)', C(:,:,2)', C(:,:,3)', C(:,:,4)', d', Y];
-A = sparse(A);
-
 %% let H=(A'/Q*A), f=(b'/Q*A+l)
-H = A'*Q_inv*A;
+H = A'*Q_inv*A; H = 0.5*(H+H'); % to guarantee symmetry
 f = b'*Q_inv*A+l;
 
-lb = zeros([14*N,1]); ub = lb;
-lb(1:12*N) = -xi; lb(13*N+1:end) = [];
-ub(1:12*N) =  xi; ub(12*N+1:end) = [];
-
 % x = quadprog(H,f,A,b,Aeq,beq,lb,ub)
-opts = optimoptions('quadprog','Algorithm','active-set','Display','off');
-[z_op, fval] = quadprog(H, f, [], [], Aeq, beq, lb, ub, zeros([14*N, 1]), opts);
-x_op = -Q_inv*(A*z_op+b);
+opts = optimoptions('quadprog','Algorithm','interior-point-convex','Display','off');
+[z_op, fval] = quadprog(H, f, [], [], [], [], lb, ub, zeros(6*N, 1), opts);
+y = -Q_inv*(A*z_op+b);
+
+%% renormalize y:
+r = sqrt(y(1:3:end).^2+y(2:3:end).^2);
+r = repmat(r', [3, 1]);
+y = y./r(:);
+
+fv= 0.5*y'*L*y + xi*(norm(C(:,:,1)*y, 1)+norm(C(:,:,2)*y, 1)...
+                    +norm(C(:,:,3)*y, 1)+norm(C(:,:,4)*y, 1));
+fprintf('It %2d, f=%f\n', it, fv);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Aeq = []; beq = zeros(4*2*N,1);
+% for i=1:4*N
+%    Aeq = blkdiag(Aeq, [1 -1 0; 0 1 -1]); 
+% end
+% Aeq = [Aeq zeros(2*4*N, 2*N)];
