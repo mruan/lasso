@@ -1,8 +1,8 @@
-%clear;
+clear;
 dbstop if error;
 
 %% Load Image:
-img = imread('~/Dropbox/lasso/nov21/horline.png');
+img = imread('~/Dropbox/lasso/nov21/2lines.png');
 
 %% Create the problem specific matrices
 [L, C, c, D, N] = init_4way_sparse(img);
@@ -15,7 +15,7 @@ for i=1:N
 end
 
 %% Optimization specific parameters.
-xi = 10.0;  % noramally called lambda
+xi = 1e-0;  % noramally called lambda
 mu = 1.0;
 
 %% The problem is:
@@ -27,22 +27,29 @@ mu = 1.0;
 Q = L+mu*D; % Q = sparse(Q); 
 Q_inv = 0.5*(eye(size(Q))/Q+ Q\eye(size(Q))); % To guarantee symmetry.
 
+M = 14;
+Aeq = []; beq = zeros(4*2*N,1);
+for i=1:4*N
+   Aeq = blkdiag(Aeq, [1 -1 0; 0 1 -1]); 
+end
+Aeq = [Aeq zeros(2*4*N, 2*N)];
+
 %% l:
-l = zeros([1, 6*N]); l(end-N:end)=1;
-lb = zeros([6*N,1]); ub = lb;
+l = zeros([1, M*N]); l(end-N:end)=1;
+lb = zeros([M*N,1]); ub = lb;
 
 %% upper and lower bounds
-lb(1:4*N) = -xi; lb(5*N+1:end) = -Inf; % -xi <= u and 0<=v
-ub(1:4*N) =  xi; ub(4*N+1:end) = +Inf; %   u <= xi 
+lb(1:(M-2)*N) = -xi; lb((M-1)*N+1:end) = -Inf; % -xi <= u and 0<=v
+ub(1:(M-2)*N) =  xi; ub((M-2)*N+1:end) = +Inf; %   u <= xi 
 
 %% The initial guess: y
 y = zeros([3*N, 1]);
-%y(1:3:end) = -1; y(3:3:end) =0.5;
+% y(1:3:end) = -1; y(3:3:end) =0.5;
 y(1:3:end) = rand(N,1);
 y(2:3:end) = sqrt(1-y(1:3:end).^2);
 y(3:3:end) = rand(N, 1);
 
-for it = 1:10
+for it = 1:100
 %% Make Y matrix
 Y = zeros([3*N, N]);
 for i=1:N
@@ -50,7 +57,7 @@ for i=1:N
 end
 
 %% Only A and b depend on y
-A = [c(:,:,1)', c(:,:,2)', c(:,:,3)', c(:,:,4)', d', Y];
+A = [C(:,:,1)', C(:,:,2)', C(:,:,3)', C(:,:,4)', d', Y];
 A = sparse(A);
 b = -mu*D*y;
 
@@ -60,7 +67,7 @@ f = b'*Q_inv*A+l;
 
 % x = quadprog(H,f,A,b,Aeq,beq,lb,ub)
 opts = optimoptions('quadprog','Algorithm','interior-point-convex','Display','off');
-[z_op, fval] = quadprog(H, f, [], [], [], [], lb, ub, zeros(6*N, 1), opts);
+[z_op, fval] = quadprog(H, f, [], [], [], [], lb, ub, zeros(M*N, 1), opts);
 y = -Q_inv*(A*z_op+b);
 
 %% renormalize y:
@@ -70,10 +77,11 @@ y = y./r(:);
 
 fv= 0.5*y'*L*y + xi*(norm(C(:,:,1)*y, 1)+norm(C(:,:,2)*y, 1)...
                     +norm(C(:,:,3)*y, 1)+norm(C(:,:,4)*y, 1));
-fprintf('It %2d, f=%f\n', it, fv);
+fprintf('It %2d, fval=%f f=%f\n', it, fval, fv);
 
 end
-
+plot3(y(1:3:end), y(1:3:end), y(3:3:end), '.r');
+axis([-1 1 -1 1 0 2]); grid on; xlabel('a'); ylabel('b'); zlabel('z');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Aeq = []; beq = zeros(4*2*N,1);
