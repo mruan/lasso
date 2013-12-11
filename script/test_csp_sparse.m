@@ -2,7 +2,7 @@
 dbstop if error;
 
 %% Load Image:
-img = imread('~/Dropbox/lasso/img/test_silhouette_sm.png');
+img = imread('~/Dropbox/lasso/nov21/horline.png');
 
 %% Create the problem specific matrices
 [L, C, c, D, N, idx] = init_4way_sparse(img);
@@ -15,7 +15,7 @@ for i=1:N
 end
 
 %% Optimization specific parameters.
-xi = 1e-02;  % noramally called lambda
+xi = 1e-0;  % noramally called lambda
 mu = 1.0;
 
 %% The problem is:
