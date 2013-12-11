@@ -38,6 +38,12 @@ Aeq = [Aeq zeros(2*4*N, 2*N)];
 l = zeros([1, M*N]); l(end-N:end)=1;
 lb = zeros([M*N,1]); ub = lb;
 
+xi_range = 10.^(-2:0.2:0);
+fv = zeros(size(xi_range));
+hv = fv;
+for k = 1:numel(xi_range)
+    xi = xi_range(k);
+    
 %% upper and lower bounds
 lb(1:(M-2)*N) = -xi; lb((M-1)*N+1:end) = -Inf; % -xi <= u and 0<=v
 ub(1:(M-2)*N) =  xi; ub((M-2)*N+1:end) = +Inf; %   u <= xi 
@@ -75,14 +81,19 @@ r = sqrt(y(1:3:end).^2+y(2:3:end).^2);
 r = repmat(r', [3, 1]);
 y = y./r(:);
 
-fv= 0.5*y'*L*y;
-hv= xi*(norm(C(:,:,1)*y, 1)+norm(C(:,:,2)*y, 1)...
-                    +norm(C(:,:,3)*y, 1)+norm(C(:,:,4)*y, 1));
-fprintf('It %2d, fval=%f f=%f h=%f F=%f\n', it, fval, fv, hv, fv+hv);
+% fv= 0.5*y'*L*y;
+% hv= xi*(norm(C(:,:,1)*y, 1)+norm(C(:,:,2)*y, 1)...
+%                     +norm(C(:,:,3)*y, 1)+norm(C(:,:,4)*y, 1));
+% fprintf('It %2d, fval=%f f=%f h=%f F=%f\n', it, fval, fv, hv, fv+hv);
 
 end
-plot3(y(1:3:end), y(1:3:end), y(3:3:end), '.r');
-axis([-1 1 -1 1 0 2]); grid on; xlabel('a'); ylabel('b'); zlabel('z');
+fv(k) = 0.5*y'*L*y;
+hv(k) = norm(C(:,:,1)*y, 1)+norm(C(:,:,2)*y, 1)+norm(C(:,:,3)*y, 1)+norm(C(:,:,4)*y, 1);
+fprintf('Xi=%f, fv=%f, hv=%f\n', xi, fv(k), hv(k));
+end
+loglog(xi_range, fv, 'r', xi_range, hv, 'b');
+% plot3(y(1:3:end), y(1:3:end), y(3:3:end), '.r');
+% axis([-1 1 -1 1 0 2]); grid on; xlabel('a'); ylabel('b'); zlabel('z');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Aeq = []; beq = zeros(4*2*N,1);
