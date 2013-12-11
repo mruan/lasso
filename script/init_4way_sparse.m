@@ -1,4 +1,4 @@
-function [L, C, c, D, N] = init_4way_sparse(img)
+function [L, C, c, D, N, beta_idx_lin] = init_4way_sparse(img)
 [H, W, Depth] = size(img);
 if(Depth==3) % if rgb image -> grayscale image
   img = rgb2gray(img);
